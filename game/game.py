@@ -29,16 +29,16 @@ class Game:
     
     # QLearning Functions
     def get_state(self):
-        state = {
-            "snake_head": self.snake.snake[0],
-            "snake_body": self.snake.snake[1:-1],
-            "snake_tail": self.snake.snake[-1],
-            "food_position": self.food.food,
-            "snake_direction": self.snake.direction,
-            "current_score": self.score.score,
-            "game_over": self.game_over,
-            "ate_food": self.ate_food
-        }
+        state = (
+            self.snake.snake[0],
+            tuple(self.snake.snake[1:-1]),
+            self.snake.snake[-1],
+            self.food.food,
+            self.snake.direction,
+            self.score.score,
+            self.game_over,
+            self.ate_food
+        )
         return state
     
     def get_possible_actions(self):
@@ -55,21 +55,27 @@ class Game:
         self.game_over = False
     
     def step(self, action):
-        self.game_loop()
+        self.game_loop(action)
         game_state = self.get_state()
-        done = game_state['game_over']
-        reward = game_state['ate_food']
+        done = self.game_over
+        reward = self.ate_food
+        self.clock.tick(60)
         return game_state, reward, done
 
     def run(self):
         while True:
             self.game_loop()
             game_state = self.get_state()
-            if game_state['game_over']:
+            if self.game_over:
                 break
+            self.clock.tick(10)
             
-    def game_loop(self):
-        for event in pygame.event.get():
+    def game_loop(self, action='no_change'):
+        if action != 'no_change':
+            key_event = pygame.event.Event(pygame.KEYDOWN, key=int(action))
+            pygame.event.post(key_event)
+        events = pygame.event.get()
+        for event in events:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -103,4 +109,3 @@ class Game:
         self.score.draw(self.display)
 
         pygame.display.update()
-        self.clock.tick(10)
