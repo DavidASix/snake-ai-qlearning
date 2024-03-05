@@ -15,6 +15,8 @@ class Game:
         self.snake = Snake()
         self.food = Food(self.snake)
         self.score = Score()
+        self.game_over = False
+        self.ate_food = False
 
     def check_game_over(self):
         if (self.snake.snake[0][0] < 0 or self.snake.snake[0][0] >= c.WINDOW_WIDTH or
@@ -27,15 +29,17 @@ class Game:
     
     # QLearning Functions
     def get_state(self):
-        snake_head = self.snake[0]
-        snake_body = self.snake[1:-1]
-        snake_tail = self.snake[-1]
-        food_position = self.food.food
-        snake_direction = self.snake.direction
-        current_score = self.score.score
-        collided = self.check_game_over()
-        ate_food = self.food.check_collision(self.snake)
-        return np.array([snake_head, snake_body, snake_tail, food_position, snake_direction, current_score, collided, ate_food])
+        state = {
+            "snake_head": self.snake.snake[0],
+            "snake_body": self.snake.snake[1:-1],
+            "snake_tail": self.snake.snake[-1],
+            "food_position": self.food.food,
+            "snake_direction": self.snake.direction,
+            "current_score": self.score.score,
+            "game_over": self.game_over,
+            "ate_food": self.ate_food
+        }
+        return state
     
     def get_possible_actions(self):
         # List out the possible key presses from the current position
@@ -44,39 +48,59 @@ class Game:
         return available_moves
 
     def reset(self):
+        self.clock = pygame.time.Clock()
         self.snake = Snake()
         self.food = Food(self.snake)
         self.score = Score()
+        self.game_over = False
+    
+    def step(self, action):
+        self.game_loop()
+        game_state = self.get_state()
+        done = game_state['game_over']
+        reward = game_state['ate_food']
+        return game_state, reward, done
 
     def run(self):
         while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+            self.game_loop()
+            game_state = self.get_state()
+            if game_state['game_over']:
+                break
+            
+    def game_loop(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_r:
-                        self.reset()
-                    # Set new direction to first pressed key
-                    # After first key is selected
-                    self.snake.change_direction(event)
+                if event.key == pygame.K_r:
+                    self.reset()
+                # Set new direction to first pressed key
+                # After first key is selected
+                self.snake.change_direction(event)
 
-            # New direction has been established, disable changing direction
-            self.snake.changing_direction = False
-            self.snake.move()
-            if self.food.check_collision(self.snake):
-                self.score.increase_score()
+        # New direction has been established, disable changing direction
+        self.snake.changing_direction = False
+        self.snake.move()
+        if self.food.check_collision(self.snake):
+            self.score.increase_score()
+            self.ate_food = True
+        else:
+            self.ate_food = False
 
-            if self.check_game_over():
-                break
+        if self.check_game_over():
+            self.game_over = True
 
-            self.display.fill(c.DARK_GREY)
-            for coord in self.snake.snake:
-                pygame.draw.rect(self.display, c.WHITE, pygame.Rect(coord[0], coord[1], c.PIXEL_SIZE, c.PIXEL_SIZE), 1)
-            pygame.draw.rect(self.display, c.RED, pygame.Rect(self.food.food[0], self.food.food[1], c.PIXEL_SIZE, c.PIXEL_SIZE))
+        self.display.fill(c.DARK_GREY)
+        for coord in self.snake.snake:
+            pygame.draw.rect(self.display, c.WHITE, pygame.Rect(coord[0], coord[1], c.PIXEL_SIZE, c.PIXEL_SIZE), 1)
+        pygame.draw.rect(self.display, c.RED, pygame.Rect(self.food.food[0], self.food.food[1], c.PIXEL_SIZE, c.PIXEL_SIZE))
 
+        self.score.draw(self.display)
 
-            self.score.draw(self.display)
-            pygame.display.update()
-            self.clock.tick(10)
-            
+        pygame.display.update()
+        self.clock.tick(10)
