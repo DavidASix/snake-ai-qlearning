@@ -1,5 +1,6 @@
 import pygame
 import sys
+import numpy as np
 import game.constants as c
 from game.snake import Snake
 from game.food import Food
@@ -23,6 +24,29 @@ class Game:
             return True
         else:
             return False
+    
+    # QLearning Functions
+    def get_state(self):
+        snake_head = self.snake[0]
+        snake_body = self.snake[1:-1]
+        snake_tail = self.snake[-1]
+        food_position = self.food.food
+        snake_direction = self.snake.direction
+        current_score = self.score.score
+        collided = self.check_game_over()
+        ate_food = self.food.check_collision(self.snake)
+        return np.array([snake_head, snake_body, snake_tail, food_position, snake_direction, current_score, collided, ate_food])
+    
+    def get_possible_actions(self):
+        # List out the possible key presses from the current position
+        available_moves = self.snake.get_available_moves()
+        available_moves.append('no_change')
+        return available_moves
+
+    def reset(self):
+        self.snake = Snake()
+        self.food = Food(self.snake)
+        self.score = Score()
 
     def run(self):
         while True:
@@ -31,6 +55,8 @@ class Game:
                     pygame.quit()
                     sys.exit()
                 elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r:
+                        self.reset()
                     # Set new direction to first pressed key
                     # After first key is selected
                     self.snake.change_direction(event)
