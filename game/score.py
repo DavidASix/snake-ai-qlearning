@@ -3,7 +3,7 @@ import game.constants as c
 
 class Score:
     def __init__(self):
-        self.score = 0
+        self.score = 3
         self.font = pygame.font.SysFont('Arial', 20)
 
     def increase_score(self):
