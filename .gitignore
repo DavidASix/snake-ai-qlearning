@@ -1,3 +1,4 @@
 compare1.py
 compare2.py
 __pycache__/
+*.pkl
