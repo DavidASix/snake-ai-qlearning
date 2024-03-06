@@ -6,10 +6,11 @@ from game.game import Game
 class QLearning:
     def __init__(self, game, learning_rate=0.5, discount_factor=0.6, exploration_rate=0.9):
         self.game = game
-        self.learning_rate = learning_rate
-        self.discount_factor = discount_factor
-        self.exploration_rate = exploration_rate
+        self.learning_rate = 0.2
+        self.discount_factor = 0.9
+        self.exploration_rate = 0.5
         self.q_table = {}
+        self.high_score = 0
 
     def save_model(self, filename):
         with open(filename, 'wb') as f:
@@ -45,13 +46,35 @@ class QLearning:
             done = False
             while not done:
                 action = self.get_action(state)
-                print(f'Trying Action {action}')
-                next_state, reward, done = self.game.step(action)
+                next_state, reward, done, score = self.game.step(action, episode, slow=episode >= episodes-2)
+                #print(f'Trying Action {action} -- Got Reward {reward}')
                 self.update_q_table(state, action, reward, next_state)
                 state = next_state
-            self.save_model(f'./snake-ai_{episodes}-episodes-{datetime.now().strftime("%Y-%m-%d-%H:%M")}.pkl')
+            #print(f'Score: {state[5]}')
+            if score >= self.high_score and score > 3:
+                self.high_score = score
+                print(f'New high score: {self.high_score}')
+        self.save_model(f'./snake-ai_{episodes}-episodes-{datetime.now().strftime("%Y-%m-%d-%H:%M")}.pkl')
+        print(f'HIGH SCORE: {self.high_score}')
+
+    def play_games(self, num_games=5):
+        for episode in range(num_games):
+            self.game.reset()
+            state = self.game.get_state()
+            done = False
+            while not done:
+                if state in self.q_table:
+                    action = np.argmax(self.q_table[state])
+                else:
+                    action = np.random.choice(self.game.get_possible_actions())
+                next_state, reward, done, score = self.game.step(action, episode, slow=True)
+                state = next_state
+            print(f'Score: {score}')
 
 game = Game()
 q_learning = QLearning(game)
 # Train the QLearning for n instances
-q_learning.train(50)
+q_learning.train(15000)
+
+#q_learning.load_model('snake-ai_3000-episodes-2024-03-05-20:18.pkl')
+#q_learning.play_games()
